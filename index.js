@@ -70,7 +70,7 @@ function startConvert(){
             //Search sheets
             if(currentSheet != 0){
                 currentSheet.forEach(userfileRow => {
-                    if(userfileRow["SKU"] == row[8] && userfileRow["QTY"] != row[17]){
+                    if(userfileRow["SKU"] == row[8]){
                         try{
                             parseInt(userfileRow["QTY"]);
                             parseInt(sample[i][17]);
