@@ -4,7 +4,7 @@ let userFile_BMD = []; // F = SKU, I = Quantity (Read)
 let sample = []; // I = SKU, P = Available (Write)
 
 // Reading sample file
-fetch("/sample.csv").then(
+fetch('/stock-converter/sample.csv').then(
     res => res.blob()
 ).then(blob => 
     blob.text()
