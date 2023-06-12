@@ -5,7 +5,7 @@ let sample = []; // I = SKU, P = Available (Write)
 let unicommerce = [["Product Code*","Quantity*","Shelf Code*","Adjustment Type*","Inventory Type","Transfer to Shelf Code","Sla","Source Batch Code","Remarks","Force Allocate"]]
 
 // Reading sample file
-fetch('/sample.csv').then(
+fetch('/stock-converter/sample.csv').then(
     res => res.blob()
 ).then(blob => 
     blob.text()
