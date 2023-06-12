@@ -2,9 +2,10 @@
 let userFile_BWD = []; // F = SKU, I = Quantity (Read)
 let userFile_BMD = []; // F = SKU, I = Quantity (Read)
 let sample = []; // I = SKU, P = Available (Write)
+let unicommerce = [["Product Code*","Quantity*","Shelf Code*","Adjustment Type*","Inventory Type","Transfer to Shelf Code","Sla","Source Batch Code","Remarks","Force Allocate"]]
 
 // Reading sample file
-fetch('/stock-converter/sample.csv').then(
+fetch('/sample.csv').then(
     res => res.blob()
 ).then(blob => 
     blob.text()
@@ -77,6 +78,10 @@ function startConvert(){
 
                             console.log(userfileRow["SKU"] + " " + userfileRow["QTY"] + " ===>  " + row[8] + " " + row[17])
                             sample[i][17] = userfileRow["QTY"]
+
+                            // Adding to unicommerce as well
+                            let uni_row = [userfileRow["SKU"],sample[i][17],"DEFAULT","REPLACE","","","","","",""]
+                            unicommerce.push(uni_row)
                         }catch{
                             alert("Provided excel sheet format is invalid");
                         }
@@ -89,23 +94,30 @@ function startConvert(){
     })
 
     // Convert array to csv file
-    csvText = buildText(sample)
-    console.log(csvText)
+    // Building CSV for shopify
     let csvBlob = new Blob([buildText(sample)], {type: 'text/plain;charset=utf-8'})
-    // let file = new File([csvBlob], "stock_convert.csv")
-    
     let btnDownload = document.querySelector("#btnDownload")
     let blobURL = URL.createObjectURL(csvBlob)
     btnDownload.setAttribute('href', blobURL);
+    
+    // Building csv file for unicommerce
+    let csbBlobUni = new Blob([buildText(unicommerce)], {type: 'text/plain;charset=utf-8'})
+    let btnDownloadUni = document.querySelector("#btnDownloadUnicommerce")
+    let blobURLUni = URL.createObjectURL(csbBlobUni)
+    btnDownloadUni.setAttribute('href', blobURLUni)
 
     // filename
     let date = new Date();
     let dateStr = date.getDate() + "_" + date.getMonth() + "_" + date.getFullYear()
-    btnDownload.setAttribute('download', 'stock_converter_' + dateStr + '.csv');
+    btnDownload.setAttribute('download', 'shopify_stock_' + dateStr + '.csv');
+    btnDownloadUni.setAttribute('download', 'unicommerce_stock_' + dateStr + '.csv');
 
     btnDownload.click();
+    btnDownloadUni.click();
+
+    //Cleaning up
     URL.revokeObjectURL(blobURL);
-    console.log("Trying to download")
+    URL.revokeObjectURL(blobURLUni);
 }
 
 // Read xlsx file from the user
