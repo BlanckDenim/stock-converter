@@ -6,7 +6,7 @@ body{
     width: 98vw;
     height: 98vh;
 
-    background-image: url("bgimage.png");
+    background-image: url("resources/bgimage.png");
     background-position: center;
     background-size: cover;
     background-blend-mode: overlay;
