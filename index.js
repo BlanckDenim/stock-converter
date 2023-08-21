@@ -1,17 +1,24 @@
 // User define file
-let userFile_BWD = []; // F = SKU, I = Quantity (Read)
-let userFile_BMD = []; // F = SKU, I = Quantity (Read)
+//let userFile_BWD = []; // F = SKU, I = Quantity (Read)
+//let userFile_BMD = []; // F = SKU, I = Quantity (Read)
+let sheets = [];
 let sample = []; // I = SKU, P = Available (Write)
 let unicommerce = [["Product Code*","Quantity*","Shelf Code*","Adjustment Type*","Inventory Type","Transfer to Shelf Code","Sla","Source Batch Code","Remarks","Force Allocate"]]
 
+// Hash map
+let skuPairs = {}
+
+// User uploaded excel file
+let workbook = null
+
 // Reading sample file
-fetch('/stock-converter/sample.csv').then(
+fetch( window.location.href + 'data/new_sample.csv').then(
     res => res.blob()
-).then(blob => 
-    blob.text()
+).then(
+    blob => blob.text()
 ).then(data => {
     sample = buildCSV(data)
-    console.log(sample);
+    console.log(sample)
 })
 
 // Build csv file from text format
@@ -54,45 +61,53 @@ function openFile(){
     document.querySelector("#btnFile").click()
 }
 
+function buildHashMap(){
+
+    workbook.SheetNames.forEach((sheet, i) => {
+        let currentSheet = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheet])
+
+        try{
+            currentSheet.forEach((row,i) => {
+                skuPairs[row["SKU"]] = parseInt(row["QTY"])
+            })
+        }
+        catch(e){
+            alert("There is something wrong with your excel file : " + e);
+        }
+    })
+}
+
 function startConvert(){
 
     // Update the stock
-    sample.forEach((row,i) => {
-        let currentSheet = 0;
-
-        try{
-            if(row[8].split("-")[0] == "BWD"){
-                currentSheet = userFile_BWD
+    // row[8] --> SKU
+    // row[17] --> On hand
+    try{
+        sample.forEach((row,i) => {
+            if(skuPairs[row[8]] != undefined){
+                if(skuPairs[row[8]] != parseInt(row[17])){
+                    console.log(`Updated ${row[8]} from ${row[17]} to ${skuPairs[row[8]]}`)
+                    row[16] = skuPairs[row[8]]
+                    row[17] = skuPairs[row[8]]
+                }
             }
-            if(row[8].split("-")[0] == "BMD"){
-                currentSheet = userFile_BMD
-            }
+        })
+    }catch(e){
+        alert("Given sample is invalid : " + e);
+    }
+}
 
-            //Search sheets
-            if(currentSheet != 0){
-                currentSheet.forEach(userfileRow => {
-                    if(userfileRow["SKU"] == row[8]){
-                        try{
-                            parseInt(userfileRow["QTY"]);
-                            parseInt(sample[i][17]);
+function startConvertUni(){
+    let skuKeys = Object.keys(skuPairs)
+    let skuValue = Object.values(skuPairs)
 
-                            console.log(userfileRow["SKU"] + " " + userfileRow["QTY"] + " ===>  " + row[8] + " " + row[17])
-                            sample[i][17] = userfileRow["QTY"]
+    for(let i = 0; i < skuKeys.length; i++){
+        let uni_row = [skuKeys[i], skuValue[i],"DEFAULT","REPLACE","","","","","",""]
+        unicommerce.push(uni_row)
+    }
+}
 
-                            // Adding to unicommerce as well
-                            let uni_row = [userfileRow["SKU"],sample[i][17],"DEFAULT","REPLACE","","","","","",""]
-                            unicommerce.push(uni_row)
-                        }catch{
-                            alert("Provided excel sheet format is invalid");
-                        }
-                    }
-                })
-            }
-        }catch(e){
-            console.log("error in conversion: " + e)
-        }
-    })
-
+function downloadFile(){
     // Convert array to csv file
     // Building CSV for shopify
     let csvBlob = new Blob([buildText(sample)], {type: 'text/plain;charset=utf-8'})
@@ -118,30 +133,37 @@ function startConvert(){
     //Cleaning up
     URL.revokeObjectURL(blobURL);
     URL.revokeObjectURL(blobURLUni);
+
 }
+
 
 // Read xlsx file from the user
 function readFile(e){
-    var file = e.target.files[0];
+    let file = e.target.files[0];
     if(!file){
         return;
     }
 
-    var reader = new FileReader();
+    let reader = new FileReader();
     reader.onload = function(e){
-        var content = e.target.result;
+        let content = e.target.result;
 
         // Build user file
-        //userFile = buildCSV(content);
-        var workbook = XLSX.read(content, {
+        workbook = XLSX.read(content, {
             type: 'binary'
         });
 
-        userFile_BWD = XLSX.utils.sheet_to_row_object_array(workbook.Sheets["BWD"])
-        userFile_BMD = XLSX.utils.sheet_to_row_object_array(workbook.Sheets["BMD"])
+        console.log(workbook.SheetNames.length);
+
+        // Build hash map for optimization
+        buildHashMap();
 
         // Start conversion
         startConvert();
+        startConvertUni();
+
+        // Give file to the user
+        downloadFile();
     }
 
     reader.readAsBinaryString(file);
